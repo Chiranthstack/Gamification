@@ -15,6 +15,7 @@ import SaveBar from '@/components/SaveBar';
 import Toast from '@/components/Toast';
 import Sheets from '@/components/Sheets';
 import PreviewBanner from '@/components/PreviewBanner';
+import Login from '@/components/Login';
 
 import Home from '@/components/screens/Home';
 import MyWork from '@/components/screens/MyWork';
@@ -73,6 +74,9 @@ export default function Page() {
   }, [s.route]);
 
   const Screen = PAGES[route] || Home;
+
+  // Demo auth gate — the entry dashboard sits in front of the app.
+  if (!s.authed) return <Login />;
 
   return (
     <>

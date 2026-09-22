@@ -239,9 +239,13 @@ function RolesSheet() {
           </div>
         ))}
       </div>
-      <div style={{ padding: '13px 18px 4px' }}>
-        <button className="btn" style={{ width: '100%' }} onClick={() => s.setViewAs(null)}>
+      <div style={{ padding: '13px 18px 4px', display: 'flex', gap: 8 }}>
+        <button className="btn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => s.setViewAs(null)}>
           Back to my own role
+        </button>
+        <button className="btn" style={{ flex: 1, justifyContent: 'center', color: 'var(--red)' }} onClick={() => { s.closeSheet(); s.logout(); }}>
+          <Icon name="i-swap" c="ico ico-s" />
+          Log out
         </button>
       </div>
     </>

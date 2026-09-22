@@ -51,6 +51,9 @@ export interface StoreState {
   lbRole: string;
   lbSearch: string;
 
+  // ── Auth (demo) ──
+  authed: boolean;
+
   // ── Chrome ──
   theme: 'light' | 'dark';
   sideNarrow: boolean;
@@ -84,7 +87,11 @@ export interface StoreState {
   readNotif: (i: number) => void;
   clearNotifs: () => void;
   markSaved: () => void;
+  login: (roleId: string) => void;
+  logout: () => void;
 }
+
+const AUTH_KEY = 'cv_auth';
 
 function defaultSeason(): Season {
   return { name: 'Q3 FY26', start: '2026-07-01', end: '2026-09-30', levelStep: DEFAULT_LEVEL_STEP, resetDay: 'Mon', currency: '₹', pointsLabel: 'pointers' };
@@ -124,6 +131,7 @@ export const useStore = create<StoreState>((set, get) => ({
   lbRole: 'all',
   lbSearch: '',
 
+  authed: false,
   theme: 'light',
   sideNarrow: false,
   sideOpen: false,
@@ -138,17 +146,23 @@ export const useStore = create<StoreState>((set, get) => ({
     // Read persisted chrome prefs.
     let theme: 'light' | 'dark' = 'light';
     let narrow = false;
+    let authRole: string | null = null;
     try {
       theme = (localStorage.getItem(THEME_KEY) as 'light' | 'dark') || 'light';
       narrow = localStorage.getItem(SIDE_KEY) === 'narrow';
+      authRole = localStorage.getItem(AUTH_KEY);
     } catch {}
     // Resolve initial route from the hash.
     let route = 'home';
     if (typeof location !== 'undefined') route = location.hash.replace('#/', '') || 'home';
 
-    set({ theme, sideNarrow: narrow, route });
+    // Restore a persisted demo session, if any.
+    const own = get().data?.leaderboard?.find((p) => p.uid === get().data?.current_uid)?.role || 'DSE';
+    const restoredViewAs = authRole ? (authRole !== own ? authRole : null) : null;
+
+    set({ theme, sideNarrow: narrow, route, authed: !!authRole, viewAs: restoredViewAs });
     get().applyThemeToDom();
-    get().useKraFor(get().viewAs || get().data?.leaderboard?.find((p) => p.uid === get().data?.current_uid)?.role || 'DSE');
+    get().useKraFor(restoredViewAs || own);
     get().rebuildNotifs();
 
     // Try the live backend; fall back to the bundled sample set.
@@ -246,6 +260,22 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   markSaved: () => set({ cfgDirty: 0 }),
+
+  login: (roleId) => {
+    const s = get();
+    const own = s.data?.leaderboard?.find((p) => p.uid === s.data?.current_uid)?.role || 'DSE';
+    const viewAs = roleId && roleId !== own ? roleId : null;
+    try { localStorage.setItem(AUTH_KEY, roleId); } catch {}
+    set({ authed: true, viewAs, route: 'home', sheet: { type: 'none' }, sideOpen: false, notifOpen: false });
+    get().useKraFor(viewAs || own);
+    get().rebuildNotifs();
+    if (typeof location !== 'undefined') location.hash = '#/home';
+  },
+
+  logout: () => {
+    try { localStorage.removeItem(AUTH_KEY); } catch {}
+    set({ authed: false, viewAs: null, sheet: { type: 'none' }, sideOpen: false, notifOpen: false });
+  },
 }));
 
 // Convenience non-hook accessors used by imperative helpers.
